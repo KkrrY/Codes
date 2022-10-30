@@ -1,86 +1,63 @@
-﻿//TODO : TR-11 Kirill Schust
+//TODO : TR-11 Kirill Schust
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 
 internal class Lab1 {
         
         public static void Main(string[] args)
         {
+            IGameEngine player1 = new GameAccount("KI");
+            IGameEngine player2 = new GameAccount("NI");
+            
             DiceGame game = new GameSession();
-            game.playDiceGame();
+            game.playDiceGame(player1, player2);
         }
 
         interface DiceGame
         {
-            void playDiceGame();
+            void playDiceGame(IGameEngine player1, IGameEngine player2);
         }
-        interface GameEngine {
+        interface IGameEngine {
             void winGame();
             void loseGame();
             void invokeDraw();
             void getStats();
 
-            //void collectData(GameEngine player, GameEngine oppositePlayer);
-            
-            string getUserName();
-            string getGameStatus();
-            void setGameStatus(string gameStatus);
-            int getCurrentRating();
             void decreaseCurrentRating();
             void increaseCurrentRating();
-            void setCurrentRating(int currentRating);
-            int getRatingValue();
-            int getDiceValue();
-            void setDiceValue(int diceValue);
-            int getGamesCount();
             void increaseGameCounter();
 
-
-
+            string userName { get; }
+            string opponentName { get; set; }
+            string gameStatus { get; set; }
+            int ratingValue { get; set; }
+            int gamesCount { get; }
+            int currentRating { get; set; }
+            int diceValue { get; set; }
+            
+            List<GameHistory> playerData { get; }
 
         }
         
-        class GameAccount : GameEngine
-        {
-            static List<string> list = new List<string>();
+        class GameAccount : IGameEngine {
+            public string userName { get; }
+            public string opponentName { get; set; }
+            public string gameStatus { get; set; }
+            public int currentRating { get; set; }
+            public int gamesCount { get; private set; }
+            public int diceValue { get; set; }
+            public int ratingValue { get; set; }
+            
             private Random random = new Random();
-            private string userName ;
-            private string gameStatus;
-            private int currentRating;
-            private int gamesCount;
-            private int diceValue;
-            private int ratingValue;
-            private static string id;
-            private static int i = 1;
+            public List<GameHistory> playerData { get; set; }
+            
 
-            public string getUserName() {
-                return userName;
-            }
 
-            public string getGameStatus() {
-                return gameStatus;
-            }
-
-            public void setGameStatus(string gameStatus) {
-                this.gameStatus = gameStatus;
-            }
-
-            public int getCurrentRating() {
-                return currentRating;
-            }
-
-            public int getDiceValue() {
-                return diceValue;
-            }
-
-            public void setDiceValue(int diceValue) {
-                this.diceValue = diceValue;
-            }
-
-            public void increaseCurrentRating()
-            {
+            public void increaseCurrentRating() {
                 ratingValue = random.Next(1, 10);
                 currentRating+= ratingValue;
             }
@@ -89,149 +66,117 @@ internal class Lab1 {
                 ratingValue = random.Next(1, 10);
                 currentRating-= ratingValue;
             }
-
-            public void setCurrentRating(int currentRating) {
-                this.currentRating = currentRating;
-            }
-
-            public int getRatingValue()
-            {
-                return ratingValue;
-            }
-
-            public int getGamesCount() {
-                return gamesCount;
-            }
-            public  void increaseGameCounter (){ gamesCount++;}
-
-            public static string generateID()
-            {
-                id = "Game ID : 2022";
-                id = id + i;
-                list.Add(id);
-                i += 1;
-                return id;
-            }
-
-            private static string getID()
-            {
-                return id;
-            }
             
-
+            public  void increaseGameCounter (){ gamesCount++;}
+            
 
             public GameAccount(string userName) {
                 this.userName = userName;
                 currentRating = 1;
                 gamesCount = 0;
+
+                playerData = new List<GameHistory>();
+                
             }
             public void winGame() {
-                setGameStatus("Win");
+                gameStatus = "Win" ;
+                increaseCurrentRating();
+                increaseGameCounter();
             }
 
             public void loseGame() {
-                setGameStatus("Lose");
+                gameStatus = "Lose" ;
+                decreaseCurrentRating();
+                increaseGameCounter();
             }
 
             public void invokeDraw() {
-                setGameStatus("Draw");
+                gameStatus = "Draw" ;
+                increaseGameCounter();
             }
 
             public void getStats()
             {
-                foreach (var data in list)
+                foreach (var data in playerData)
                 {
-                    Console.WriteLine(data);
+                    Console.WriteLine("Game id:" + data.gameID);
+                    Console.WriteLine("Player name: " + data.userName + " | "
+                                      + " Game status: " + data.gameStatus + " | "
+                                      + " Rating count (+/-): " + data.rating + " | "
+                                      + " Played against: " + data.opponentName + " | "
+                                      + " Total games: " + data.gamesCount);
                 }
             }
+            
 
-            public static void collectData(GameEngine player, GameEngine oppositePlayer)
+            public static void printSessionLogs(IGameEngine player1, IGameEngine player2) 
             {
-                string data = "Player name: " +  player.getUserName().ToString() + " | " 
-                              +" Game status: " +  player.getGameStatus().ToString() + " | " 
-                              +" Rating count (+/-): " +  player.getRatingValue().ToString() + " | " 
-                              +" Played against: " + oppositePlayer.getUserName().ToString() + " | " 
-                              +" Total games: " + player.getGamesCount().ToString(); 
-                
-                list.Add(data);
+                Console.WriteLine("Player1: " + player1.userName + " VS Player 2: " + player2.userName);
+                Console.WriteLine("Player's dice value is: "+ player1.diceValue +", " + player2.userName + " dice value is "+ player2.diceValue);
+                Console.WriteLine("Player 1 : " + player1.userName + " won the game");
+
+                if (player1.diceValue != player2.diceValue)
+                {
+                    Console.WriteLine("Player's 1 rating increased by " + player1.ratingValue + " and equals : " + player1.currentRating);
+                    Console.WriteLine("Player's 2 rating decreased by " + player2.ratingValue + " and equals : " + player2.currentRating);
+                }
+                else
+                {
+                    Console.WriteLine("It's draw, dices are equal");
+                }
             }
         }
 
         class GameSession : DiceGame
         {
-            private GameEngine player1 = new GameAccount("KI");
-            private GameEngine player2 = new GameAccount("NI");
-            
-            public void playDiceGame() {
+            public void playDiceGame(IGameEngine player1, IGameEngine player2)
+            {
+
                 Random random = new Random();
+                
                 int value1 = random.Next(1, 6);
                 int value2 = random.Next(1, 6);
 
-                player1.setDiceValue(value1);
-                player2.setDiceValue(value2);
+                player1.diceValue = value1;
+                player2.diceValue = value2;
 
-                if (player1.getDiceValue() > player2.getDiceValue()) {
-                    Console.WriteLine("Player1: " + player1.getUserName() + " VS Player 2: " + player2.getUserName());
-                    Console.WriteLine("Player's dice value is: "+ player1.getDiceValue() +", " + player2.getUserName() + " dice value is "+ player2.getDiceValue());
-                    Console.WriteLine("Player 1 : " + player1.getUserName() + " won the game");
-                    player1.increaseCurrentRating();
-                    player2.decreaseCurrentRating();
-                    if (player2. getCurrentRating() <= 0) {player2.setCurrentRating(1);}
-                    Console.WriteLine("Player's 1 rating increased by " + player1.getRatingValue() + " and equals : " + player1.getCurrentRating());
-                    Console.WriteLine("Player's 2 rating decreased by " + player2.getRatingValue() + " and equals : " + player2.getCurrentRating());
+                if (player1.diceValue > player2.diceValue) {
                     player1.winGame();
                     player2.loseGame();
-                    
-                    player1.increaseGameCounter();
-                    player2.increaseGameCounter();
-                    GameAccount.generateID();
-                    GameAccount.collectData(player1, player2);
-                    GameAccount.collectData(player2, player1);
+                    if (player2. currentRating <= 0) {player2.currentRating = 1;}
+                    GameAccount.printSessionLogs(player1, player2);
+
                 }
-                else if (player1.getDiceValue() == player2.getDiceValue()) {
-                    Console.WriteLine("Player1: " + player1.getUserName() + " VS Player 2: " + player2.getUserName());
-                    Console.WriteLine("Player's dice value is: "+ player1.getDiceValue() +", " + player2.getUserName() + " dice value is "+ player2.getDiceValue());
-                    Console.WriteLine("It's draw, dices are equal");
+                else if (player1.diceValue == player2.diceValue) {
                     player1.invokeDraw();
                     player2.invokeDraw();
-                    
-                    player1.increaseGameCounter();
-                    player2.increaseGameCounter();
-                    GameAccount.generateID();
-                    GameAccount.collectData(player1, player2);
-                    GameAccount.collectData(player2, player1);
+                    GameAccount.printSessionLogs(player1, player2);
+
                 }
                 else {
-                    Console.WriteLine("Player1: " + player1.getUserName() + " VS Player 2: " + player2.getUserName());
-                    Console.WriteLine("Player's dice value is: "+ player1.getDiceValue() +", " + player2.getUserName() + " dice value is "+ player2.getDiceValue());
-                    Console.WriteLine("Player 2 : " + player2.getUserName() + " won the game");
-                    player2.increaseCurrentRating();
-                    player1.decreaseCurrentRating();
-                    if (player1.getCurrentRating() <= 0){player1.setCurrentRating(1);}
-                    Console.WriteLine("Player's 2 rating increased by " + player2.getRatingValue() + " and equals : " + player2.getCurrentRating());
-                    Console.WriteLine("Player's 1 rating decreased by " + player1.getRatingValue() + " and equals : " + player1.getCurrentRating());
                     player2.winGame();
                     player1.loseGame();
+                    if (player1.currentRating <= 0){player1.currentRating = 1;}
+                    GameAccount.printSessionLogs(player1, player2);
                     
-                    player1.increaseGameCounter();
-                    player2.increaseGameCounter();
-                    GameAccount.generateID();
-                    GameAccount.collectData(player2, player1);
-                    GameAccount.collectData(player1, player2);
                 }
-
+                GameHistory.recordData(player1, player2);
+                
                 while (true) {
                     Console.WriteLine("Do you want to play again? Enter : \" yes \" or \" no \" ");
-                    Console.WriteLine("You can print matches information using \" print \" command");
+                    Console.WriteLine("You can print matches information using \" print player1 / player2 \" command");
                     string name = Console.ReadLine();
                     switch (name)
                     {
-                        case "yes": playDiceGame();
+                        case "yes": playDiceGame(player1, player2);
                             break;
                         case "no": Environment.Exit(0);
                             break;
-                        case "print" :
-                            player2.getStats(); //or player 1, doesn't matter 
+                        case "print player1" :
+                            player1.getStats();
+                            break;
+                        case "print player2" :
+                            player2.getStats();
                             break;
                         default: Console.WriteLine("Enter the right command, please");
                             break;
@@ -240,6 +185,44 @@ internal class Lab1 {
                 }
                 
             }
+        }
+
+        class GameHistory
+        {
+            
+            private static int idSeed = 2022;
+            public string gameID { get; set; }
+            private int i = 1;
+            public string userName { get; }
+            public string opponentName { get; }
+            public int rating { get; }
+            public int gamesCount { get; }
+            public string gameStatus { get; }
+
+            private GameHistory(string userName, string opponentName, int rating, int gamesCount, string gameStatus)
+            {
+                this.userName = userName;
+                this.opponentName = opponentName;
+                this.rating = rating;
+                this.gamesCount = gamesCount;
+                this.gameStatus = gameStatus;
+
+                gameID = idSeed.ToString();
+                idSeed++;
+            }
+
+            public static void recordData(IGameEngine player1, IGameEngine player2)
+            {
+                player1.playerData.Add(new GameHistory(player1.userName, player2.userName, player1.currentRating, player1.gamesCount, player1.gameStatus));
+                changeSeed();
+                player2.playerData.Add(new GameHistory(player2.userName, player1.userName, player2.currentRating, player2.gamesCount, player2.gameStatus ));
+            }
+            
+            private static void changeSeed()
+            {
+                idSeed--;
+            }
+            
         }
         
     }
