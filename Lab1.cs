@@ -10,8 +10,8 @@ internal class Lab1 {
         
         public static void Main(string[] args)
         {
-            IGameEngine player1 = new GameAccount("KI");
-            IGameEngine player2 = new GameAccount("NI");
+            IGameEngine player1 = new GameAccount("KI", 100);
+            IGameEngine player2 = new GameAccount("NI", 100);
             
             DiceGame game = new GameSession();
             game.playDiceGame(player1, player2);
@@ -35,7 +35,7 @@ internal class Lab1 {
             string opponentName { get; set; }
             string gameStatus { get; set; }
             int ratingValue { get; set; }
-            int gamesCount { get; }
+            int gamesCount { get; set; }
             int currentRating { get; set; }
             int diceValue { get; set; }
             
@@ -47,8 +47,23 @@ internal class Lab1 {
             public string userName { get; }
             public string opponentName { get; set; }
             public string gameStatus { get; set; }
-            public int currentRating { get; set; }
-            public int gamesCount { get; private set; }
+
+            private int _currentRating;
+
+            public int currentRating
+            {
+                get
+                {
+                    return _currentRating;
+                }
+                set
+                {
+                    _currentRating = (_currentRating < 0) ? throw  new ArgumentOutOfRangeException(nameof(_currentRating), "Wrong setter value") : value;
+                }
+            }
+
+
+            public int gamesCount { get; set; }
             public int diceValue { get; set; }
             public int ratingValue { get; set; }
             
@@ -70,10 +85,10 @@ internal class Lab1 {
             public  void increaseGameCounter (){ gamesCount++;}
             
 
-            public GameAccount(string userName) {
+            public GameAccount(string userName, int currentRating) {
                 this.userName = userName;
-                currentRating = 1;
                 gamesCount = 0;
+                this.currentRating = currentRating;
 
                 playerData = new List<GameHistory>();
                 
@@ -82,17 +97,24 @@ internal class Lab1 {
                 gameStatus = "Win" ;
                 increaseCurrentRating();
                 increaseGameCounter();
+                if (currentRating <= 0) {currentRating = 1;}
+                playerData.Add(new GameHistory(userName, opponentName, ratingValue, currentRating, gamesCount, gameStatus, GameSession.id));
             }
 
             public void loseGame() {
                 gameStatus = "Lose" ;
                 decreaseCurrentRating();
                 increaseGameCounter();
+                if (currentRating <= 0) {currentRating = 1;}
+                playerData.Add(new GameHistory(userName, opponentName, ratingValue, currentRating, gamesCount, gameStatus, GameSession.id));
             }
 
             public void invokeDraw() {
                 gameStatus = "Draw" ;
+                ratingValue = 0;
                 increaseGameCounter();
+                if (currentRating <= 0) {currentRating = 1;}
+                playerData.Add(new GameHistory(userName, opponentName, ratingValue, currentRating, gamesCount, gameStatus, GameSession.id));
             }
 
             public void getStats()
@@ -103,6 +125,7 @@ internal class Lab1 {
                     Console.WriteLine("Player name: " + data.userName + " | "
                                       + " Game status: " + data.gameStatus + " | "
                                       + " Rating count (+/-): " + data.rating + " | "
+                                      + " Total rating: " + data.wholeRating + " | "
                                       + " Played against: " + data.opponentName + " | "
                                       + " Total games: " + data.gamesCount);
                 }
@@ -113,12 +136,18 @@ internal class Lab1 {
             {
                 Console.WriteLine("Player1: " + player1.userName + " VS Player 2: " + player2.userName);
                 Console.WriteLine("Player's dice value is: "+ player1.diceValue +", " + player2.userName + " dice value is "+ player2.diceValue);
-                Console.WriteLine("Player 1 : " + player1.userName + " won the game");
 
-                if (player1.diceValue != player2.diceValue)
+                if (player1.diceValue > player2.diceValue)
                 {
+                    Console.WriteLine("Player 1 : " + player1.userName + " won the game");
                     Console.WriteLine("Player's 1 rating increased by " + player1.ratingValue + " and equals : " + player1.currentRating);
                     Console.WriteLine("Player's 2 rating decreased by " + player2.ratingValue + " and equals : " + player2.currentRating);
+                }
+                else if (player1.diceValue < player2.diceValue)
+                {
+                    Console.WriteLine("Player 2 : " + player2.userName + " won the game");
+                    Console.WriteLine("Player's 2 rating increased by " + player2.ratingValue + " and equals : " + player2.currentRating);
+                    Console.WriteLine("Player's 1 rating decreased by " + player1.ratingValue + " and equals : " + player1.currentRating);
                 }
                 else
                 {
@@ -129,11 +158,11 @@ internal class Lab1 {
 
         class GameSession : DiceGame
         {
+            Random random = new Random();
+            public static int id { get; private set; } 
             public void playDiceGame(IGameEngine player1, IGameEngine player2)
             {
 
-                Random random = new Random();
-                
                 int value1 = random.Next(1, 6);
                 int value2 = random.Next(1, 6);
 
@@ -143,25 +172,28 @@ internal class Lab1 {
                 if (player1.diceValue > player2.diceValue) {
                     player1.winGame();
                     player2.loseGame();
-                    if (player2. currentRating <= 0) {player2.currentRating = 1;}
-                    GameAccount.printSessionLogs(player1, player2);
 
                 }
                 else if (player1.diceValue == player2.diceValue) {
                     player1.invokeDraw();
                     player2.invokeDraw();
-                    GameAccount.printSessionLogs(player1, player2);
 
                 }
                 else {
                     player2.winGame();
                     player1.loseGame();
-                    if (player1.currentRating <= 0){player1.currentRating = 1;}
-                    GameAccount.printSessionLogs(player1, player2);
-                    
+
                 }
-                GameHistory.recordData(player1, player2);
-                
+                GameAccount.printSessionLogs(player1,player2);
+                incId();
+
+                assignLoop(player1,player2);
+                //currentRating = (currentRating < 1) ? throw  new ArgumentOutOfRangeException(nameof(currentRating), "Wrong setter value") : value;
+            }
+
+            void incId() { id++;}
+            void assignLoop(IGameEngine player1, IGameEngine player2) {
+               
                 while (true) {
                     Console.WriteLine("Do you want to play again? Enter : \" yes \" or \" no \" ");
                     Console.WriteLine("You can print matches information using \" print player1 / player2 \" command");
@@ -183,47 +215,38 @@ internal class Lab1 {
                     }
 
                 }
-                
             }
         }
 
         class GameHistory
         {
             
-            private static int idSeed = 2022;
-            public string gameID { get; set; }
-            private int i = 1;
+            public string gameID { get; set; } = "2022";
+            private string i;
             public string userName { get; }
             public string opponentName { get; }
             public int rating { get; }
+            public int wholeRating { get; }
             public int gamesCount { get; }
             public string gameStatus { get; }
 
-            private GameHistory(string userName, string opponentName, int rating, int gamesCount, string gameStatus)
+            public GameHistory(string userName, string opponentName, int obtainedRating, int wholeRating, int gamesCount, string gameStatus, int id)
             {
                 this.userName = userName;
                 this.opponentName = opponentName;
-                this.rating = rating;
+                rating = obtainedRating;
+                this.wholeRating = wholeRating;
                 this.gamesCount = gamesCount;
                 this.gameStatus = gameStatus;
-
-                gameID = idSeed.ToString();
-                idSeed++;
-            }
-
-            public static void recordData(IGameEngine player1, IGameEngine player2)
-            {
-                player1.playerData.Add(new GameHistory(player1.userName, player2.userName, player1.currentRating, player1.gamesCount, player1.gameStatus));
-                changeSeed();
-                player2.playerData.Add(new GameHistory(player2.userName, player1.userName, player2.currentRating, player2.gamesCount, player2.gameStatus ));
+                
+                i = id.ToString();
+                gameID += i;
             }
             
-            private static void changeSeed()
-            {
-                idSeed--;
-            }
+            
             
         }
         
     }
     
+
